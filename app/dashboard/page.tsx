@@ -116,13 +116,20 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        <div className="mt-5 rounded-3xl border border-black/[0.07] bg-white p-6">
-          <h2 className="font-bold">Your inbox</h2>
-          <p className="mt-2 text-sm leading-6 text-[#77747d]">
-            Your message inbox is coming next. Your personal link is not ready
-            to receive messages until we finish the public message page.
-          </p>
-        </div>
+        <Link
+          href="/inbox"
+          className="mt-5 block rounded-3xl border border-black/[0.07] bg-white p-6 transition hover:border-violet-200 hover:shadow-sm"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-bold">Your inbox</h2>
+              <p className="mt-2 text-sm leading-6 text-[#77747d]">
+                Read and manage anonymous messages sent to you.
+              </p>
+            </div>
+            <span className="text-xl text-violet-600">→</span>
+          </div>
+        </Link>
       </section>
     </main>
   );
