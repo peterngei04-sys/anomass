@@ -8,19 +8,32 @@ import { supabase } from "@/lib/supabase";
 export default function DashboardPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [messageCount, setMessageCount] = useState<number | null>(null);
+
+  const messageLink =
+    typeof window !== "undefined" && username
+      ? `${window.location.origin}/u/${username}`
+      : "";
 
   useEffect(() => {
     let active = true;
 
-    async function loadAccount() {
-      const { data: { user } } = await supabase.auth.getUser();
+    async function loadDashboard() {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (authError || !user) {
         router.replace("/login");
         return;
       }
+
+      if (!active) return;
+      setUserEmail(user.email ?? "");
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -30,17 +43,26 @@ export default function DashboardPage() {
 
       if (!active) return;
 
-      const savedUsername =
-        profile?.username ??
+      const name =
+        profile?.username ||
         (typeof user.user_metadata?.username === "string"
           ? user.user_metadata.username
           : "");
 
-      setUsername(savedUsername);
-      setLoading(false);
+      setUsername(name);
+
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("recipient_id", user.id);
+
+      if (active) {
+        setMessageCount(count ?? 0);
+        setLoading(false);
+      }
     }
 
-    loadAccount();
+    loadDashboard();
 
     return () => {
       active = false;
@@ -55,82 +77,190 @@ export default function DashboardPage() {
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 2200);
     } catch {
-      window.prompt("Copy your Anomass link:", link);
+      window.prompt("Copy your personal Anomass link:", link);
     }
   }
 
-  async function logout() {
+  async function signOut() {
     await supabase.auth.signOut();
     router.replace("/login");
-    router.refresh();
   }
 
   if (loading) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-[#faf9f7] text-[#77747d]">
-        Loading your account...
+      <main className="dashboard-page">
+        <div className="dashboard-loading">
+          <div className="loading-orb" />
+          <p>Getting your space ready...</p>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="flex flex-1 flex-col bg-[#faf9f7] px-5 py-6 text-[#242329]">
-      <header className="mx-auto flex max-w-3xl items-center justify-between">
-        <Link href="/" className="text-2xl font-black tracking-tight">
-          anomass<span className="text-violet-600">.</span>
-        </Link>
-        <button onClick={logout} className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-black/5">
-          Log out
-        </button>
-      </header>
+    <main className="dashboard-page">
+      <div className="dashboard-shell">
+        <header className="dashboard-topbar">
+          <Link href="/" className="brand-mark">
+            <span className="brand-symbol">a.</span>
+            <span>anomass</span>
+          </Link>
 
-      <section className="mx-auto max-w-3xl pt-12">
-        <p className="text-sm font-semibold text-violet-700">YOUR ACCOUNT</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight">
-          Hey, {username || "there"}.
-        </h1>
-        <p className="mt-3 text-[#77747d]">
-          Your Anomass space starts here.
-        </p>
+          <div className="dashboard-top-actions">
+            <Link href="/inbox" className="top-inbox-link">
+              <span aria-hidden="true">✉</span>
+              Inbox
+              {messageCount !== null && messageCount > 0 && (
+                <span className="inbox-count">{messageCount}</span>
+              )}
+            </Link>
+            <button
+              type="button"
+              onClick={signOut}
+              className="logout-button"
+            >
+              Log out
+            </button>
+          </div>
+        </header>
 
-        <div className="mt-8 rounded-3xl border border-black/[0.07] bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="text-xl font-bold">Your personal link</h2>
-          <p className="mt-2 text-sm leading-6 text-[#77747d]">
-            Share your link so people can send you anonymous messages.
+        <section className="dashboard-welcome">
+          <div>
+            <p className="eyebrow">
+              <span className="eyebrow-sparkle">✦</span> YOUR LITTLE CORNER
+            </p>
+            <h1>
+              Hey{username ? `, ${username}` : " there"}.
+              <br />
+              <span>Let the messages roll in.</span>
+            </h1>
+            <p className="welcome-description">
+              Share your link with your people and see what they really want to
+              tell you. The unexpected messages are usually the best ones.
+            </p>
+          </div>
+          <div className="welcome-art" aria-hidden="true">
+            <div className="art-sparkle sparkle-one">✦</div>
+            <div className="art-sparkle sparkle-two">✧</div>
+            <div className="art-heart">♡</div>
+            <div className="art-message art-message-one">you seem cool 👀</div>
+            <div className="art-message art-message-two">secret admirer? 💌</div>
+          </div>
+        </section>
+
+        <section className="share-card">
+          <div className="share-card-heading">
+            <div className="share-icon">↗</div>
+            <div>
+              <p className="share-kicker">YOUR PERSONAL LINK</p>
+              <h2>Your link is ready to go.</h2>
+            </div>
+          </div>
+
+          <p className="share-description">
+            Put it on your WhatsApp status, Instagram bio, or send it straight
+            to your friends.
           </p>
 
-          <div className="mt-5 break-all rounded-xl bg-[#f5f3f8] p-4 text-sm">
-            {typeof window !== "undefined" && username
-              ? `${window.location.origin}/u/${username}`
-              : "Your link will appear here"}
+          <div className="personal-link-box">
+            <span className="link-mini-icon">🔗</span>
+            <span className="personal-link-text">
+              {username
+                ? `${typeof window !== "undefined" ? window.location.host : "anomass"}/u/${username}`
+                : "Preparing your link..."}
+            </span>
+            <button
+              type="button"
+              onClick={copyLink}
+              disabled={!username}
+              className={`copy-link-button ${copied ? "is-copied" : ""}`}
+            >
+              {copied ? "✓ Copied!" : "Copy link"}
+            </button>
           </div>
 
-          <button
-            onClick={copyLink}
-            disabled={!username}
-            className="mt-4 w-full rounded-xl bg-violet-600 px-5 py-3.5 font-bold text-white hover:bg-violet-700 disabled:opacity-50 sm:w-auto"
-          >
-            {copied ? "Copied!" : "Copy my link"}
-          </button>
-        </div>
+          <div className="share-card-bottom">
+            <span>♡</span>
+            <span>Your identity isn't displayed with messages.</span>
+            <Link
+              href={username ? `/u/${username}` : "/dashboard"}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Preview your page ↗
+            </Link>
+          </div>
+        </section>
 
-        <Link
-          href="/inbox"
-          className="mt-5 block rounded-3xl border border-black/[0.07] bg-white p-6 transition hover:border-violet-200 hover:shadow-sm"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-bold">Your inbox</h2>
-              <p className="mt-2 text-sm leading-6 text-[#77747d]">
-                Read and manage anonymous messages sent to you.
-              </p>
+        <section className="dashboard-stats">
+          <div className="stat-card">
+            <div className="stat-topline">
+              <span className="stat-icon stat-icon-pink">✉</span>
+              <span className="stat-label">YOUR INBOX</span>
             </div>
-            <span className="text-xl text-violet-600">→</span>
+            <p className="stat-number">{messageCount ?? "—"}</p>
+            <p className="stat-caption">messages received</p>
+            <Link href="/inbox" className="stat-action">
+              Open your inbox <span>→</span>
+            </Link>
           </div>
-        </Link>
-      </section>
+
+          <div className="stat-card stat-card-violet">
+            <div className="stat-topline">
+              <span className="stat-icon stat-icon-violet">✦</span>
+              <span className="stat-label">YOUR NEXT MOVE</span>
+            </div>
+            <p className="stat-feature-title">Make them curious.</p>
+            <p className="stat-caption">
+              A little mystery goes a long way. Share your link today.
+            </p>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="stat-action stat-action-button"
+            >
+              {copied ? "Link copied ✓" : "Share your link"} <span>↗</span>
+            </button>
+          </div>
+        </section>
+
+        <section className="dashboard-tip">
+          <div className="tip-emoji">💌</div>
+          <div>
+            <p className="tip-title">Need a status idea?</p>
+            <p className="tip-copy">
+              “I know you have something to say 👀 Send it anonymously.”
+            </p>
+          </div>
+          <button
+            type="button"
+            className="tip-copy-button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(
+                  "I know you have something to say 👀 Send it anonymously."
+                );
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 2200);
+              } catch {
+                window.prompt(
+                  "Copy this status:",
+                  "I know you have something to say 👀 Send it anonymously."
+                );
+              }
+            }}
+          >
+            Copy idea
+          </button>
+        </section>
+
+        <footer className="dashboard-footer">
+          <span>Made for the things left unsaid.</span>
+          <span>♡ anomass</span>
+        </footer>
+      </div>
     </main>
   );
 }

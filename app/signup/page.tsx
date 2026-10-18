@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -20,9 +21,12 @@ export default function SignupPage() {
     setNotice("");
 
     const cleanUsername = username.trim().toLowerCase();
+    const cleanEmail = email.trim();
 
     if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
-      setError("Username must be 3–20 characters using letters, numbers or underscores.");
+      setError(
+        "Username must be 3–20 characters using letters, numbers or underscores."
+      );
       return;
     }
 
@@ -35,7 +39,7 @@ export default function SignupPage() {
 
     try {
       const { data, error: signupError } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: cleanEmail,
         password,
         options: {
           data: { username: cleanUsername },
@@ -50,7 +54,7 @@ export default function SignupPage() {
         router.refresh();
       } else {
         setNotice(
-          "Your registration was submitted. Check your email for a confirmation link if confirmation is enabled, then log in."
+          "Your registration was submitted. If email confirmation is enabled, check your inbox before logging in."
         );
       }
     } catch (err) {
@@ -65,105 +69,167 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-[#faf9f7] px-5 py-10 text-[#242329]">
-      <section className="w-full max-w-md">
-        <Link href="/" className="text-2xl font-black tracking-tight">
-          anomass<span className="text-violet-600">.</span>
+    <main className="auth-page">
+      <div className="auth-glow auth-glow-one" />
+      <div className="auth-glow auth-glow-two" />
+
+      <section className="auth-shell">
+        <Link href="/" className="auth-brand">
+          <span className="auth-brand-mark">a.</span>
+          <span>anomass<span className="auth-brand-dot">.</span></span>
         </Link>
 
-        <div className="mt-8 rounded-3xl border border-black/[0.07] bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-3xl font-black tracking-tight">Create your account</h1>
-          <p className="mt-2 text-sm leading-6 text-[#77747d]">
-            Your own space for anonymous messages.
-          </p>
-
-          <form onSubmit={handleSignup} className="mt-7 space-y-4">
-            <div>
-              <label htmlFor="username" className="mb-2 block text-sm font-semibold">
-                Username
-              </label>
-              <input
-                id="username"
-                required
-                minLength={3}
-                maxLength={20}
-                pattern="[A-Za-z0-9_]{3,20}"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="your_username"
-                className="w-full rounded-xl border border-black/10 bg-[#faf9f7] px-4 py-3 outline-none focus:border-violet-500"
-              />
-              <p className="mt-1 text-xs text-[#8a8790]">
-                3–20 letters, numbers or underscores.
-              </p>
+        <div className="auth-card">
+          <div className="auth-hero">
+            <div className="auth-icon" aria-hidden="true">
+              💌
+              <span>✦</span>
             </div>
 
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-semibold">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-xl border border-black/10 bg-[#faf9f7] px-4 py-3 outline-none focus:border-violet-500"
-              />
+            <p className="auth-eyebrow">YOUR STORY STARTS HERE</p>
+
+            <h1>
+              Your own little
+              <br />
+              <span>corner of mystery.</span>
+            </h1>
+
+            <p className="auth-description">
+              Create your link, share it with your people, and discover what
+              they've been wanting to tell you.
+            </p>
+
+            <div className="auth-benefits">
+              <span><b>♡</b> Your own message link</span>
+              <span><b>✦</b> A space for honest words</span>
+            </div>
+          </div>
+
+          <div className="auth-form-area">
+            <div className="auth-form-heading">
+              <div>
+                <h2>Create your account</h2>
+                <p>It only takes a minute to get started.</p>
+              </div>
+              <span className="auth-form-sparkle">✧</span>
             </div>
 
-            <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-semibold">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
-                className="w-full rounded-xl border border-black/10 bg-[#faf9f7] px-4 py-3 outline-none focus:border-violet-500"
-              />
+            <form onSubmit={handleSignup} className="auth-form">
+              <div className="auth-field">
+                <label htmlFor="username">Choose a username</label>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon">@</span>
+                  <input
+                    id="username"
+                    required
+                    minLength={3}
+                    maxLength={20}
+                    pattern="[A-Za-z0-9_]{3,20}"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) =>
+                      setUsername(e.target.value.toLowerCase())
+                    }
+                    placeholder="your_username"
+                    disabled={loading}
+                  />
+                </div>
+                <p className="auth-field-hint">
+                  This becomes your personal Anomass link.
+                </p>
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="email">Email address</label>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon">✉</span>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="password">Create a password</label>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon">♧</span>
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="auth-password-toggle"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                <p className="auth-field-hint">
+                  Use at least 8 characters.
+                </p>
+              </div>
+
+              {error && (
+                <div className="auth-alert auth-alert-error" role="alert">
+                  <span>!</span>
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {notice && (
+                <div className="auth-alert auth-alert-notice" role="status">
+                  <span>✓</span>
+                  <p>{notice}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="auth-submit"
+              >
+                <span>{loading ? "Creating your space..." : "Create my account"}</span>
+                <span className="auth-submit-arrow">{loading ? "…" : "↗"}</span>
+              </button>
+
+              <p className="auth-terms-note">
+                By joining, be kind, respect boundaries, and avoid sharing
+                sensitive personal information.
+              </p>
+            </form>
+
+            <div className="auth-login-divider">
+              <span />
+              <p>Already part of Anomass?</p>
+              <span />
             </div>
 
-            {error && (
-              <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </p>
-            )}
-
-            {notice && (
-              <p role="status" className="rounded-xl bg-violet-50 p-3 text-sm leading-6 text-violet-800">
-                {notice}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-violet-600 px-4 py-3.5 font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
-            >
-              {loading ? "Creating account..." : "Create account"}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-[#77747d]">
-            Already have an account?{" "}
-            <Link href="/login" className="font-bold text-violet-700 hover:underline">
-              Log in
+            <Link href="/login" className="auth-login-link">
+              Log in to your account <span>→</span>
             </Link>
-          </p>
+          </div>
         </div>
 
-        <p className="mt-5 text-center text-xs text-[#8a8790]">
-          Be kind. Respect boundaries. Don't share sensitive personal information.
-        </p>
+        <footer className="auth-footer">
+          <span>♡</span> Good words. Bold secrets. Little surprises.
+          <Link href="/">Back to home</Link>
+        </footer>
       </section>
     </main>
   );

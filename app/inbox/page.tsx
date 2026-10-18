@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type InboxMessage = {
+type Message = {
   id: string;
   content: string;
   created_at: string;
@@ -13,13 +13,16 @@ type InboxMessage = {
 
 export default function InboxPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<InboxMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
 
-  const loadMessages = useCallback(async () => {
-    setLoading(true);
+  const loadMessages = useCallback(async (quiet = false) => {
+    if (quiet) setRefreshing(true);
+    else setLoading(true);
+
     setError("");
 
     const {
@@ -32,148 +35,227 @@ export default function InboxPage() {
       return;
     }
 
-    const { data, error: queryError } = await supabase
-      .from("messages")
-      .select("id, content, created_at")
-      .eq("recipient_id", user.id)
-      .order("created_at", { ascending: false });
+    const [messageResult, profileResult] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("id, content, created_at")
+        .eq("recipient_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
 
-    if (queryError) {
-      console.error("Anomass inbox load failed:", queryError);
+    if (messageResult.error) {
       setError("We couldn't load your messages. Please try again.");
     } else {
-      setMessages((data ?? []) as InboxMessage[]);
+      setMessages((messageResult.data ?? []) as Message[]);
     }
 
+    setUsername(profileResult.data?.username ?? "");
     setLoading(false);
+    setRefreshing(false);
   }, [router]);
 
   useEffect(() => {
-    void loadMessages();
+    loadMessages();
   }, [loadMessages]);
 
   async function deleteMessage(id: string) {
-    const confirmed = window.confirm("Delete this message permanently?");
+    const confirmed = window.confirm(
+      "Delete this message? You won't be able to get it back."
+    );
+
     if (!confirmed) return;
-
-    setDeletingId(id);
-    setError("");
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
 
     const { error: deleteError } = await supabase
       .from("messages")
       .delete()
-      .eq("id", id)
-      .eq("recipient_id", user.id);
-
-    setDeletingId(null);
+      .eq("id", id);
 
     if (deleteError) {
-      console.error("Anomass message deletion failed:", deleteError);
-      setError("We couldn't delete that message. Please try again.");
+      setError("That message couldn't be deleted. Please try again.");
       return;
     }
 
-    setMessages((current) => current.filter((item) => item.id !== id));
+    setMessages((current) => current.filter((message) => message.id !== id));
+  }
+
+  function formatDate(value: string) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "Recently received";
+
+    return new Intl.DateTimeFormat("en", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
   }
 
   return (
-    <main className="flex flex-1 flex-col bg-[#faf9f7] px-5 py-6 text-[#242329]">
-      <header className="mx-auto flex w-full max-w-3xl items-center justify-between">
-        <Link href="/" className="text-2xl font-black tracking-tight">
-          anomass<span className="text-violet-600">.</span>
-        </Link>
-        <Link
-          href="/dashboard"
-          className="rounded-full border border-black/[0.07] bg-white px-4 py-2.5 text-sm font-semibold hover:border-violet-200 hover:bg-violet-50"
-        >
-          Dashboard
-        </Link>
-      </header>
+    <main className="inbox-page">
+      <div className="inbox-shell">
+        <header className="inbox-topbar">
+          <Link href="/dashboard" className="inbox-brand">
+            <span className="inbox-brand-symbol">a.</span>
+            <span>anomass</span>
+          </Link>
 
-      <section className="mx-auto w-full max-w-3xl flex-1 pt-8 sm:pt-12">
-        <p className="text-sm font-semibold text-violet-700">YOUR PRIVATE INBOX</p>
-        <h1 className="mt-2 text-4xl font-extrabold tracking-[-0.045em] sm:text-5xl">Messages</h1>
-        <p className="mt-3 text-[#77747d]">
-          Anonymous messages sent to your Anomass link appear here.
-        </p>
+          <Link href="/dashboard" className="inbox-back-link">
+            <span aria-hidden="true">←</span> Dashboard
+          </Link>
+        </header>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-b border-black/[0.07] pb-4">
-          <p className="text-sm text-[#77747d]">
-            {loading ? "Loading messages..." : `${messages.length} message${messages.length === 1 ? "" : "s"}`}
-          </p>
-          <button
-            onClick={() => void loadMessages()}
-            disabled={loading}
-            className="rounded-xl border border-black/[0.08] bg-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:border-violet-200 hover:bg-violet-50 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        </div>
+        <section className="inbox-hero">
+          <div className="inbox-hero-copy">
+            <p className="inbox-eyebrow">YOUR SECRET CORNER ✦</p>
+            <h1>
+              The things
+              <br />
+              <span>people want to say.</span>
+            </h1>
+            <p className="inbox-subtitle">
+              Every message is a little mystery. Read them, enjoy them, and
+              remember: someone took a moment to send you something.
+            </p>
+          </div>
+
+          <div className="inbox-hero-art" aria-hidden="true">
+            <div className="inbox-art-glow" />
+            <div className="inbox-envelope">💌</div>
+            <span className="inbox-art-star inbox-star-one">✦</span>
+            <span className="inbox-art-star inbox-star-two">✧</span>
+            <span className="inbox-art-note">psst... 👀</span>
+          </div>
+        </section>
+
+        <section className="inbox-toolbar">
+          <div>
+            <p className="inbox-section-kicker">THE MESSAGE VAULT</p>
+            <h2>Your inbox <span>♡</span></h2>
+          </div>
+
+          <div className="inbox-toolbar-right">
+            <span className="inbox-total">
+              {messages.length} {messages.length === 1 ? "message" : "messages"}
+            </span>
+            <button
+              type="button"
+              className="inbox-refresh-button"
+              onClick={() => loadMessages(true)}
+              disabled={loading || refreshing}
+            >
+              <span className={refreshing ? "refresh-spinning" : ""}>↻</span>
+              {refreshing ? "Checking..." : "Refresh"}
+            </button>
+          </div>
+        </section>
 
         {error && (
-          <p role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-
-        {!loading && !error && messages.length === 0 && (
-          <div className="mt-8 rounded-[28px] border border-black/[0.07] bg-white px-6 py-12 text-center shadow-[0_12px_40px_rgba(30,20,50,0.035)] sm:px-10">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100">
-              <span className="text-2xl">✉</span>
-            </div>
-            <h2 className="mt-5 text-xl font-bold">No messages yet</h2>
-            <p className="mt-2 text-sm leading-6 text-[#77747d]">
-              Share your personal link with friends. When they send a message, it will appear here.
-            </p>
-            <Link
-              href="/dashboard"
-              className="mt-5 inline-flex rounded-xl bg-violet-600 px-5 py-3 font-bold text-white hover:bg-violet-700"
-            >
-              Go to my link
-            </Link>
+          <div className="inbox-error" role="alert">
+            <span>♡</span> {error}
+            <button type="button" onClick={() => loadMessages()}>
+              Try again
+            </button>
           </div>
         )}
 
-        <div className="mt-6 space-y-4">
-          {messages.map((message) => (
-            <article
-              key={message.id}
-              className="rounded-[24px] border border-black/[0.07] bg-white p-5 shadow-[0_5px_24px_rgba(30,20,50,0.035)] sm:p-6"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[15px] leading-7 text-[#302d36] sm:text-base">
-                  {message.content}
-                </p>
-                <span className="shrink-0 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
-                  Anonymous
-                </span>
-              </div>
+        {loading ? (
+          <div className="inbox-loading">
+            <div className="inbox-loader" />
+            <p>Unsealing your messages...</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <section className="inbox-empty">
+            <div className="empty-illustration">
+              <span className="empty-sparkle empty-sparkle-left">✦</span>
+              <span className="empty-envelope">💌</span>
+              <span className="empty-sparkle empty-sparkle-right">✧</span>
+            </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] pt-4">
-                <time className="text-xs text-[#77747d]" dateTime={message.created_at}>
-                  {new Date(message.created_at).toLocaleString()}
-                </time>
-                <button
-                  onClick={() => void deleteMessage(message.id)}
-                  disabled={deletingId === message.id}
-                  className="rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                >
-                  {deletingId === message.id ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+            <p className="empty-kicker">A LITTLE QUIET IN HERE</p>
+            <h3>Your story starts with the first message.</h3>
+            <p className="empty-description">
+              Your inbox is waiting for its first surprise. Share your Anomass
+              link and let people know they can say what’s on their mind.
+            </p>
+
+            <Link href="/dashboard" className="empty-primary-button">
+              Get your link <span>↗</span>
+            </Link>
+
+            <p className="empty-footnote">
+              Your next notification could be interesting 👀
+            </p>
+          </section>
+        ) : (
+          <section className="inbox-message-grid">
+            {messages.map((message, index) => (
+              <article
+                key={message.id}
+                className="inbox-message-card"
+                style={{ animationDelay: `${Math.min(index, 8) * 65}ms` }}
+              >
+                <div className="message-card-top">
+                  <div className="message-avatar">
+                    {["♡", "✦", "✿", "✧"][index % 4]}
+                  </div>
+                  <div className="message-meta">
+                    <span className="anonymous-label">
+                      <span className="anonymous-dot" />
+                      ANONYMOUS MESSAGE
+                    </span>
+                    <time dateTime={message.created_at}>
+                      {formatDate(message.created_at)}
+                    </time>
+                  </div>
+                  <span className="message-card-number">
+                    #{String(messages.length - index).padStart(2, "0")}
+                  </span>
+                </div>
+
+                <div className="message-card-content">{message.content}</div>
+
+                <div className="message-card-bottom">
+                  <span className="message-secret-note">
+                    <span>🔒</span> Sender identity not shown
+                  </span>
+                  <button
+                    type="button"
+                    className="message-delete-button"
+                    onClick={() => deleteMessage(message.id)}
+                    aria-label="Delete message"
+                    title="Delete message"
+                  >
+                    <span aria-hidden="true">×</span> Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+
+        <section className="inbox-share-nudge">
+          <div className="share-nudge-icon">💗</div>
+          <div className="share-nudge-copy">
+            <h3>Want more messages?</h3>
+            <p>Your link is the key. Share it and see what happens.</p>
+          </div>
+          <Link href="/dashboard" className="share-nudge-button">
+            Share my link <span>↗</span>
+          </Link>
+        </section>
+
+        <footer className="inbox-footer">
+          <span>Some things are easier left unsaid... or anonymously said. ♡</span>
+          <Link href="/dashboard">Back to your space</Link>
+        </footer>
+      </div>
     </main>
   );
 }

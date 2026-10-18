@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Suspense } from "react";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -9,12 +11,26 @@ type Recipient = {
   username: string;
 };
 
-export default function PublicMessagePage({
-  params,
-}: {
-  params: Promise<{ username: string }>;
-}) {
-  const [username, setUsername] = useState("");
+export default function PublicMessagePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="public-message-page">
+          <div className="public-message-loading">
+            <div className="public-message-loader" />
+            <p>Opening their little corner...</p>
+          </div>
+        </main>
+      }
+    >
+      <PublicMessageContent />
+    </Suspense>
+  );
+}
+
+function PublicMessageContent() {
+  const params = useParams<{ username: string }>();
+  const username = decodeURIComponent(params.username || "").toLowerCase();
 
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [message, setMessage] = useState("");
@@ -26,19 +42,11 @@ export default function PublicMessagePage({
   useEffect(() => {
     let active = true;
 
-    params.then((value) => {
-      if (active) setUsername(decodeURIComponent(value.username || "").toLowerCase());
-    }).catch(() => {
-      if (active) {
-        setError("We could not read this profile link.");
-        setLoading(false);
-      }
-    });
-
     async function loadRecipient() {
       setLoading(true);
+      setError("");
 
-      const { data, error } = await supabase
+      const { data, error: lookupError } = await supabase
         .from("profiles")
         .select("id, username")
         .eq("username", username)
@@ -46,10 +54,12 @@ export default function PublicMessagePage({
 
       if (!active) return;
 
-      if (error) {
-        setError("We couldn't load this profile. Please try again later.");
+      if (lookupError) {
+        setError("We couldn't load this page. Please try again.");
       } else if (data) {
         setRecipient(data as Recipient);
+      } else {
+        setRecipient(null);
       }
 
       setLoading(false);
@@ -60,7 +70,7 @@ export default function PublicMessagePage({
     return () => {
       active = false;
     };
-  }, [username, params]);
+  }, [username]);
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,12 +79,17 @@ export default function PublicMessagePage({
     const content = message.trim();
 
     if (!recipient) {
-      setError("This profile could not be found.");
+      setError("This Anomass link doesn't seem to exist.");
       return;
     }
 
-    if (!content || content.length > 500) {
-      setError("Your message must be between 1 and 500 characters.");
+    if (!content) {
+      setError("Write a little something before sending.");
+      return;
+    }
+
+    if (content.length > 500) {
+      setError("Keep your message under 500 characters.");
       return;
     }
 
@@ -90,7 +105,6 @@ export default function PublicMessagePage({
     setSending(false);
 
     if (insertError) {
-      console.error("Anomass message submission failed:", insertError);
       setError("Your message couldn't be sent. Please try again.");
       return;
     }
@@ -99,96 +113,221 @@ export default function PublicMessagePage({
     setSent(true);
   }
 
-  return (
-    <main className="flex flex-1 items-center justify-center bg-[#faf9f7] px-5 py-10 text-[#242329]">
-      <section className="w-full max-w-md">
-        <Link href="/" className="text-2xl font-black tracking-tight">
-          anomass<span className="text-violet-600">.</span>
-        </Link>
+  function sendAnother() {
+    setSent(false);
+    setError("");
+    setMessage("");
+  }
 
-        {loading ? (
-          <div className="mt-10 rounded-3xl border border-black/[0.07] bg-white p-7">
-            Loading profile...
-          </div>
-        ) : !recipient ? (
-          <div className="mt-10 rounded-3xl border border-black/[0.07] bg-white p-7">
-            <h1 className="text-2xl font-black">Profile not found</h1>
-            <p className="mt-3 text-sm leading-6 text-[#77747d]">
-              This Anomass link may be incorrect or the account may no longer exist.
+  if (loading) {
+    return (
+      <main className="public-message-page">
+        <div className="public-message-loading">
+          <div className="public-message-loader" />
+          <p>Opening their little corner...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!recipient) {
+    return (
+      <main className="public-message-page">
+        <div className="public-message-shell">
+          <Link href="/" className="public-message-brand">
+            <span className="public-brand-symbol">a.</span>
+            anomass
+          </Link>
+
+          <section className="public-message-panel not-found-panel">
+            <div className="public-message-illustration">🔎</div>
+            <p className="public-message-eyebrow">MISSING IN ACTION</p>
+            <h1>We can't find this space.</h1>
+            <p className="public-message-description">
+              This link may be incorrect or the account may no longer be available.
             </p>
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-          </div>
-        ) : (
-          <div className="mt-8 rounded-3xl border border-black/[0.07] bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-2xl font-black text-violet-700">
-              {recipient.username.charAt(0).toUpperCase()}
+            <Link href="/" className="public-message-main-button">
+              Back to Anomass <span>→</span>
+            </Link>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="public-message-page">
+      <div className="public-message-shell">
+        <header className="public-message-topbar">
+          <Link href="/" className="public-message-brand">
+            <span className="public-brand-symbol">a.</span>
+            anomass
+          </Link>
+
+          <span className="public-topbar-tag">
+            <span className="public-online-dot" />
+            A little space for honesty
+          </span>
+        </header>
+
+        <section className="public-message-panel">
+          <div className="public-message-hero">
+            <div className="public-message-illustration" aria-hidden="true">
+              💌<span className="public-illustration-sparkle">✦</span>
             </div>
 
-            <p className="mt-6 text-sm font-semibold text-violet-700">
-              ANONYMOUS MESSAGES
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight">
-              Send a message to @{recipient.username}
+            <p className="public-message-eyebrow">YOUR WORDS, YOUR WAY</p>
+
+            <h1>
+              Send something
+              <br />
+              <span>they won't expect.</span>
             </h1>
-            <p className="mt-3 text-sm leading-6 text-[#77747d]">
-              Say what you want to say. Your message will be sent anonymously.
+
+            <p className="public-message-description">
+              Leave a compliment, confess a secret, ask a question, or just
+              say what's on your mind. Your name isn't displayed with your message.
             </p>
 
-            {sent ? (
-              <div className="mt-6 rounded-2xl bg-violet-50 p-5">
-                <h2 className="font-bold text-violet-800">Message sent!</h2>
-                <p className="mt-2 text-sm leading-6 text-violet-700">
-                  Your message has been delivered. Your identity isn't displayed to the recipient.
-                </p>
-                <button
-                  onClick={() => setSent(false)}
-                  className="mt-4 rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700"
-                >
-                  Send another message
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={sendMessage} className="mt-6">
-                <label htmlFor="message" className="mb-2 block text-sm font-bold">
-                  Your message
-                </label>
-                <textarea
-                  id="message"
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Write something..."
-                  maxLength={500}
-                  required
-                  rows={5}
-                  className="w-full resize-y rounded-2xl border border-black/10 bg-[#faf9f7] p-4 text-base outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                />
+            <div className="public-recipient-pill">
+              <span className="recipient-avatar">
+                {recipient.username.charAt(0).toUpperCase()}
+              </span>
+              <span>
+                Sending to <strong>@{recipient.username}</strong>
+              </span>
+              <span className="recipient-heart">♡</span>
+            </div>
+          </div>
 
-                <div className="mt-2 text-right text-xs text-[#77747d]">
-                  {message.length}/500
+          <div className="public-composer-area">
+            {sent ? (
+              <div className="public-success-state" role="status">
+                <div className="success-confetti" aria-hidden="true">
+                  <span>✦</span>
+                  <span>♡</span>
+                  <span>✧</span>
                 </div>
 
-                {error && (
-                  <p role="alert" className="mt-3 text-sm text-red-600">
-                    {error}
-                  </p>
-                )}
+                <div className="success-icon">💌</div>
+                <p className="success-kicker">MESSAGE SENT</p>
+
+                <h2>
+                  Your message
+                  <br />
+                  <span>is on its way!</span>
+                </h2>
+
+                <p className="success-description">
+                  You've said your piece. Now it's their turn to discover it.
+                  Your identity isn't displayed with the message.
+                </p>
 
                 <button
-                  type="submit"
-                  disabled={sending || !message.trim()}
-                  className="mt-4 w-full rounded-xl bg-violet-600 px-5 py-4 font-bold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  type="button"
+                  onClick={sendAnother}
+                  className="public-message-main-button success-again-button"
                 >
-                  {sending ? "Sending..." : "Send anonymously"}
+                  Send another message <span>↗</span>
                 </button>
-              </form>
+
+                <p className="success-bottom-note">
+                  A little mystery can make someone's day. ♡
+                </p>
+
+                <div className="success-signup-prompt">
+                  <span className="success-signup-heart">💗</span>
+                  <h3>Now it's your turn!</h3>
+                  <p>
+                    Want to hear what people will say about you? Get your own
+                    Anomass link and let the messages roll in.
+                  </p>
+                  <Link href="/signup" className="success-signup-button">
+                    Get my Anomass link <span>↗</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="composer-heading">
+                  <div>
+                    <p className="composer-kicker">THE FLOOR IS YOURS</p>
+                    <h2>What's on your mind?</h2>
+                  </div>
+                  <span className="composer-emoji">✍️</span>
+                </div>
+
+                <form onSubmit={sendMessage} className="public-message-form">
+                  <label
+                    htmlFor="anonymous-message"
+                    className="composer-label"
+                  >
+                    YOUR MESSAGE
+                  </label>
+
+                  <div className="composer-textarea-wrap">
+                    <textarea
+                      id="anonymous-message"
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      placeholder="I've been wanting to tell you this..."
+                      maxLength={500}
+                      rows={6}
+                      required
+                      disabled={sending}
+                      className="public-message-textarea"
+                    />
+
+                    <div className="composer-textarea-bottom">
+                      <span>Be real. Be kind. Be you. ♡</span>
+                      <span
+                        className={
+                          message.length > 450
+                            ? "character-count character-count-warning"
+                            : "character-count"
+                        }
+                      >
+                        {message.length}/500
+                      </span>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <p className="public-message-error" role="alert">
+                      <span>!</span> {error}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={sending || !message.trim()}
+                    className="public-message-main-button send-message-button"
+                  >
+                    <span>
+                      {sending ? "Sending your message..." : "Send anonymously"}
+                    </span>
+                    <span className="send-button-icon">
+                      {sending ? "…" : "↗"}
+                    </span>
+                  </button>
+
+                  <p className="composer-privacy-note">
+                    <span>🔒</span>
+                    Your name won't be displayed with this message.
+                  </p>
+                </form>
+              </>
             )}
           </div>
-        )}
+        </section>
 
-        <p className="mt-6 text-center text-xs text-[#77747d]">
-          Your words, your way. Powered by Anomass.
-        </p>
-      </section>
+        <footer className="public-message-footer">
+          <p>Good words. Bold secrets. Little surprises. ♡</p>
+          <Link href="/signup">
+            Want your own link? <strong>Get yours ↗</strong>
+          </Link>
+        </footer>
+      </div>
     </main>
   );
 }
