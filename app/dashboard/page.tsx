@@ -54,7 +54,8 @@ export default function DashboardPage() {
       const { count } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
-        .eq("recipient_id", user.id);
+        .eq("recipient_id", user.id)
+        .eq("is_read", false);
 
       if (active) {
         setMessageCount(count ?? 0);

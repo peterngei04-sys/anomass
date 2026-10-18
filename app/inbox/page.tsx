@@ -9,6 +9,7 @@ type Message = {
   id: string;
   content: string;
   created_at: string;
+  is_read: boolean;
 };
 
 export default function InboxPage() {
@@ -38,7 +39,7 @@ export default function InboxPage() {
     const [messageResult, profileResult] = await Promise.all([
       supabase
         .from("messages")
-        .select("id, content, created_at")
+        .select("id, content, created_at, is_read")
         .eq("recipient_id", user.id)
         .order("created_at", { ascending: false }),
       supabase
@@ -198,9 +199,14 @@ export default function InboxPage() {
             {messages.map((message, index) => (
               <article
                 key={message.id}
-                className="inbox-message-card"
+                className={`inbox-message-card ${!message.is_read ? "is-unread" : ""}`}
                 style={{ animationDelay: `${Math.min(index, 8) * 65}ms` }}
               >
+                <Link
+                  href={`/inbox/${message.id}`}
+                  className="inbox-message-open"
+                  aria-label={`Open ${message.is_read ? "message" : "unread message"} from ${formatDate(message.created_at)}`}
+                >
                 <div className="message-card-top">
                   <div className="message-avatar">
                     {["♡", "✦", "✿", "✧"][index % 4]}
@@ -210,6 +216,12 @@ export default function InboxPage() {
                       <span className="anonymous-dot" />
                       ANONYMOUS MESSAGE
                     </span>
+                    {!message.is_read && (
+                      <span className="message-unread-label">
+                        <span className="message-unread-dot" />
+                        NEW
+                      </span>
+                    )}
                     <time dateTime={message.created_at}>
                       {formatDate(message.created_at)}
                     </time>
@@ -219,7 +231,13 @@ export default function InboxPage() {
                   </span>
                 </div>
 
-                <div className="message-card-content">{message.content}</div>
+                <div className="message-card-content message-preview">
+                  {message.content.length > 100
+                    ? `${message.content.slice(0, 100).trimEnd()}…`
+                    : message.content}
+                  <span className="message-open-hint">Tap to read →</span>
+                </div>
+                </Link>
 
                 <div className="message-card-bottom">
                   <span className="message-secret-note">
