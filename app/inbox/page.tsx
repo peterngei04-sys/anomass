@@ -86,34 +86,34 @@ export default function InboxPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#faf9f7] px-5 py-6 text-[#242329]">
-      <header className="mx-auto flex max-w-3xl items-center justify-between">
+    <main className="flex flex-1 flex-col bg-[#faf9f7] px-5 py-6 text-[#242329]">
+      <header className="mx-auto flex w-full max-w-3xl items-center justify-between">
         <Link href="/" className="text-2xl font-black tracking-tight">
           anomass<span className="text-violet-600">.</span>
         </Link>
         <Link
           href="/dashboard"
-          className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-black/5"
+          className="rounded-full border border-black/[0.07] bg-white px-4 py-2.5 text-sm font-semibold hover:border-violet-200 hover:bg-violet-50"
         >
           Dashboard
         </Link>
       </header>
 
-      <section className="mx-auto max-w-3xl pt-10 sm:pt-14">
+      <section className="mx-auto w-full max-w-3xl flex-1 pt-8 sm:pt-12">
         <p className="text-sm font-semibold text-violet-700">YOUR PRIVATE INBOX</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight">Messages</h1>
+        <h1 className="mt-2 text-4xl font-extrabold tracking-[-0.045em] sm:text-5xl">Messages</h1>
         <p className="mt-3 text-[#77747d]">
           Anonymous messages sent to your Anomass link appear here.
         </p>
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-b border-black/[0.07] pb-4">
           <p className="text-sm text-[#77747d]">
             {loading ? "Loading messages..." : `${messages.length} message${messages.length === 1 ? "" : "s"}`}
           </p>
           <button
             onClick={() => void loadMessages()}
             disabled={loading}
-            className="rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold hover:bg-black/[0.03] disabled:opacity-50"
+            className="rounded-xl border border-black/[0.08] bg-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:border-violet-200 hover:bg-violet-50 disabled:opacity-50"
           >
             Refresh
           </button>
@@ -126,7 +126,7 @@ export default function InboxPage() {
         )}
 
         {!loading && !error && messages.length === 0 && (
-          <div className="mt-6 rounded-3xl border border-black/[0.07] bg-white p-8 text-center">
+          <div className="mt-8 rounded-[28px] border border-black/[0.07] bg-white px-6 py-12 text-center shadow-[0_12px_40px_rgba(30,20,50,0.035)] sm:px-10">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100">
               <span className="text-2xl">✉</span>
             </div>
@@ -143,14 +143,14 @@ export default function InboxPage() {
           </div>
         )}
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-6 space-y-4">
           {messages.map((message) => (
             <article
               key={message.id}
-              className="rounded-3xl border border-black/[0.07] bg-white p-5 shadow-sm sm:p-6"
+              className="rounded-[24px] border border-black/[0.07] bg-white p-5 shadow-[0_5px_24px_rgba(30,20,50,0.035)] sm:p-6"
             >
               <div className="flex items-start justify-between gap-4">
-                <p className="whitespace-pre-wrap break-words text-base leading-7">
+                <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[15px] leading-7 text-[#302d36] sm:text-base">
                   {message.content}
                 </p>
                 <span className="shrink-0 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">

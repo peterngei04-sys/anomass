@@ -69,14 +69,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#faf9f7] text-[#77747d]">
+      <main className="flex flex-1 items-center justify-center bg-[#faf9f7] text-[#77747d]">
         Loading your account...
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#faf9f7] px-5 py-6 text-[#242329]">
+    <main className="flex flex-1 flex-col bg-[#faf9f7] px-5 py-6 text-[#242329]">
       <header className="mx-auto flex max-w-3xl items-center justify-between">
         <Link href="/" className="text-2xl font-black tracking-tight">
           anomass<span className="text-violet-600">.</span>

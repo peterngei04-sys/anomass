@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#faf9f7] text-[#242329]">
+    <main className="flex flex-1 flex-col bg-[#faf9f7] text-[#242329]">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
         <Link href="/" className="text-2xl font-black tracking-tight">
           anomass<span className="text-violet-600">.</span>
@@ -65,9 +65,6 @@ export default function Home() {
         </p>
       </section>
 
-      <footer className="border-t border-black/[0.07] px-5 py-6 text-center text-xs text-[#8a8790]">
-        Anomass · Speak freely. Respect boundaries.
-      </footer>
     </main>
   );
 }
