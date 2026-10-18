@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import PushNotifications from "@/components/PushNotifications";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -150,6 +151,8 @@ export default function DashboardPage() {
             <div className="art-message art-message-two">secret admirer? 💌</div>
           </div>
         </section>
+
+        <PushNotifications />
 
         <section className="share-card">
           <div className="share-card-heading">
