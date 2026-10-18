@@ -9,6 +9,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,71 +40,130 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-[#faf9f7] px-5 py-10 text-[#242329]">
-      <section className="w-full max-w-md">
-        <Link href="/" className="text-2xl font-black tracking-tight">
-          anomass<span className="text-violet-600">.</span>
-        </Link>
+    <main className="auth-page login-page">
+      <div className="login-glow login-glow-one" />
+      <div className="login-glow login-glow-two" />
 
-        <div className="mt-8 rounded-3xl border border-black/[0.07] bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-3xl font-black tracking-tight">Welcome back</h1>
-          <p className="mt-2 text-sm text-[#77747d]">
-            Log in to continue to Anomass.
+      <section className="login-layout">
+        <div className="login-intro">
+          <Link href="/" className="auth-brand">
+            ano<span>mass</span><b>.</b>
+          </Link>
+
+          <div className="login-intro-content">
+            <div className="login-eyebrow">
+              <span className="login-live-dot" />
+              YOUR SPACE. YOUR SECRETS.
+            </div>
+
+            <h1>
+              The messages
+              <br />
+              you <span>never saw</span>
+              <br />
+              coming.
+            </h1>
+
+            <p>
+              Your friends have something to say. Get back in and discover
+              what’s waiting for you.
+            </p>
+
+            <div className="login-message-preview">
+              <div className="login-avatar">?</div>
+              <div className="login-message-copy">
+                <span>Someone has a message for you</span>
+                <strong>“I've wanted to tell you this for a while…”</strong>
+              </div>
+              <span className="login-sparkle">✦</span>
+            </div>
+          </div>
+
+          <p className="login-side-note">
+            A little mystery makes life interesting. 💌
           </p>
+        </div>
 
-          <form onSubmit={handleLogin} className="mt-7 space-y-4">
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-semibold">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-xl border border-black/10 bg-[#faf9f7] px-4 py-3 outline-none focus:border-violet-500"
-              />
+        <div className="login-form-side">
+          <div className="login-card">
+            <div className="login-card-icon">✦</div>
+
+            <div className="login-heading">
+              <p className="login-kicker">GOOD TO SEE YOU AGAIN</p>
+              <h2>Welcome back<span>.</span></h2>
+              <p>Log in and get back to your world.</p>
             </div>
 
-            <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-semibold">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
-                className="w-full rounded-xl border border-black/10 bg-[#faf9f7] px-4 py-3 outline-none focus:border-violet-500"
-              />
+            <form onSubmit={handleLogin} className="login-form">
+              <div className="login-field">
+                <label htmlFor="email">Email address</label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div className="login-field">
+                <div className="login-password-label">
+                  <label htmlFor="password">Password</label>
+                </div>
+
+                <div className="login-password-wrap">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    className="login-show-password"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <p role="alert" className="login-error">
+                  <span>!</span> {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="login-submit"
+              >
+                <span>{loading ? "Logging you in..." : "Log in to Anomass"}</span>
+                {!loading && <span className="login-submit-arrow">↗</span>}
+              </button>
+            </form>
+
+            <div className="login-divider">
+              <span />
+              <p>YOUR PEOPLE ARE WAITING</p>
+              <span />
             </div>
 
-            {error && (
-              <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-                {error}
-              </p>
-            )}
+            <p className="login-signup">
+              New to Anomass?{" "}
+              <Link href="/signup">Create your account <span>→</span></Link>
+            </p>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-violet-600 px-4 py-3.5 font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
-            >
-              {loading ? "Logging in..." : "Log in"}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-[#77747d]">
-            New to Anomass?{" "}
-            <Link href="/signup" className="font-bold text-violet-700 hover:underline">
-              Create an account
-            </Link>
+          <p className="login-privacy-note">
+            Made for honest words and a little mystery. <span>♥</span>
           </p>
         </div>
       </section>
