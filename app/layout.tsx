@@ -14,13 +14,38 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    "https://anomass.vercel.app"
+  ),
   title: {
     default: "Anomass — Speak freely",
     template: "%s | Anomass",
   },
   description:
-    "Your space for anonymous messages. Share your Anomass link and hear what people have to say.",
+    "Send anonymous messages to your friends. No names attached.",
   applicationName: "Anomass",
+  openGraph: {
+    title: "Anomass — Speak freely",
+    description:
+      "Send anonymous messages to your friends. No names attached.",
+    siteName: "Anomass",
+    type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Anomass — anonymous messages, real feelings.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Anomass — Speak freely",
+    description:
+      "Send anonymous messages to your friends. No names attached.",
+    images: ["/opengraph-image"],
+  },
 };
 
 export const viewport: Viewport = {
