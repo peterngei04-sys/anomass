@@ -13,13 +13,34 @@ type PushStatus =
   | "error";
 
 function decodeVapidKey(value: string): Uint8Array {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4);
-  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  const bytes = new Uint8Array(raw.length);
+  const key = value
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\s/g, "")
+    .replace(/=+$/g, "");
 
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  return bytes;
+  if (!/^[A-Za-z0-9_-]+$/.test(key)) {
+    throw new Error(
+      "The push public key contains invalid characters. Check the Vercel environment variable."
+    );
+  }
+
+  if (key.length !== 87) {
+    throw new Error(
+      `The push public key has ${key.length} characters; expected 87. Check the Vercel environment variable.`
+    );
+  }
+
+  const base64 = key.replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(
+    base64 + "=".repeat((4 - (base64.length % 4)) % 4)
+  );
+
+  if (raw.length !== 65 || raw.charCodeAt(0) !== 4) {
+    throw new Error("The push public key is not a valid VAPID public key.");
+  }
+
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
 }
 
 export default function PushNotifications() {
